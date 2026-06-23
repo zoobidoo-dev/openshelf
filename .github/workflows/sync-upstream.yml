@@ -7,7 +7,7 @@ on:
 
 jobs:
   sync:
-    name: Merge MrSheerluck/openshelf → main
+    name: Merge MrSheerluck/openshelf into main
     runs-on: ubuntu-latest
     permissions:
       contents: write
