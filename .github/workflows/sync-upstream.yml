@@ -1,0 +1,31 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # daily at 3am UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Merge MrSheerluck/openshelf → main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream and sync
+        run: |
+          git remote add upstream https://github.com/MrSheerluck/openshelf.git
+          git fetch upstream
+          git merge upstream/main --no-edit || echo "Nothing to merge or conflicts detected"
+          git push origin main
