@@ -645,7 +645,10 @@ pub async fn serve_book_file(
             return Ok(Response::builder()
                 .status(StatusCode::PARTIAL_CONTENT)
                 .header(header::CONTENT_TYPE, mime)
-                .header(header::CONTENT_RANGE, format!("bytes {}-{}/{}", start, end, total))
+                .header(
+                    header::CONTENT_RANGE,
+                    format!("bytes {}-{}/{}", start, end, total),
+                )
                 .header(header::ACCEPT_RANGES, "bytes")
                 .header(header::CONTENT_LENGTH, chunk_len.to_string())
                 .body(chunk.into())
