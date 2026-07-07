@@ -107,7 +107,6 @@ pub async fn signin(
             row.get(0)
         })
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
-
     verify_password(&body.password, &hash)?;
     drop(db);
 

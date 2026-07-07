@@ -1,4 +1,10 @@
 :8080 {
+	log {
+		output stderr
+		format console
+		level INFO
+	}
+
 	handle /api/* {
 		reverse_proxy localhost:3001
 	}

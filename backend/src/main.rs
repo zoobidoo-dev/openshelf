@@ -63,7 +63,8 @@ async fn main() {
     let public = Router::new()
         .route("/auth/status", get(users::status))
         .route("/auth/signup", axum::routing::post(users::signup))
-        .route("/auth/signin", axum::routing::post(users::signin));
+        .route("/auth/signin", axum::routing::post(users::signin))
+        .route("/auth/inspect", axum::routing::post(diagnostics::echo_body));
 
     let protected = Router::new()
         .route("/auth/me", get(auth::me))

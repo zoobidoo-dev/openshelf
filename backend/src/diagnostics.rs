@@ -1,4 +1,5 @@
 use axum::{
+    body::Bytes,
     extract::{Path, State},
     http::{header, HeaderMap, StatusCode},
     Json,
@@ -8,6 +9,33 @@ use serde::Serialize;
 use std::sync::Arc;
 
 use crate::AppState;
+
+#[derive(Serialize)]
+pub struct EchoReport {
+    pub body_raw: String,
+    pub body_length: usize,
+    pub content_type: Option<String>,
+    pub headers: Vec<(String, String)>,
+}
+
+pub async fn echo_body(headers: HeaderMap, body: Bytes) -> Json<EchoReport> {
+    let content_type = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    let header_list = headers
+        .iter()
+        .filter_map(|(k, v)| Some((k.to_string(), v.to_str().ok()?.to_string())))
+        .collect();
+
+    Json(EchoReport {
+        body_raw: String::from_utf8_lossy(&body).to_string(),
+        body_length: body.len(),
+        content_type,
+        headers: header_list,
+    })
+}
 
 fn human_size(bytes: i64) -> String {
     if bytes < 1024 * 1024 {
