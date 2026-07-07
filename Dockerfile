@@ -30,5 +30,5 @@ ENV PORT=3001
 ENV XDG_DATA_HOME=/data
 VOLUME /data
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD curl -f http://localhost:3001/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD curl -f http://localhost:3001/health || exit 1
 ENTRYPOINT ["/entrypoint.sh"]

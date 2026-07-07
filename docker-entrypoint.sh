@@ -18,7 +18,7 @@ API_PID=$!
 
 echo "Waiting for API server..."
 for i in $(seq 1 30); do
-  if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
+  if curl -sf http://localhost:3001/health > /dev/null 2>&1; then
     echo "API server ready"
     break
   fi

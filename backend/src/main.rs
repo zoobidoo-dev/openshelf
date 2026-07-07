@@ -1,13 +1,14 @@
 mod auth;
 mod books;
+mod cache;
 mod db;
 mod storage;
 mod users;
 
 use axum::{extract::DefaultBodyLimit, http::Method, middleware, routing::get, Json, Router};
+use cache::EpubCache;
 use rusqlite::Connection;
 use serde::Serialize;
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tower_http::cors::{AllowOrigin, CorsLayer};
@@ -22,7 +23,7 @@ pub struct AppState {
     pub db: Mutex<Connection>,
     pub jwt_secret: String,
     pub storage: Option<storage::Storage>,
-    pub epub_cache: Mutex<HashMap<String, Arc<Vec<u8>>>>,
+    pub epub_cache: Mutex<EpubCache>,
 }
 
 async fn health_check(state: axum::extract::State<Arc<AppState>>) -> Json<HealthResponse> {
@@ -55,7 +56,7 @@ async fn main() {
         db: Mutex::new(conn),
         jwt_secret,
         storage: s3_storage,
-        epub_cache: Mutex::new(HashMap::new()),
+        epub_cache: Mutex::new(EpubCache::new()),
     });
 
     let public = Router::new()

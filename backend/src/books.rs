@@ -702,9 +702,9 @@ pub async fn serve_book_resource(
     // Pull the EPUB bytes, caching them per-book so a 30-image book costs
     // exactly one S3 fetch rather than 30.
     let zip_bytes = {
-        let cache = state.epub_cache.lock().await;
+        let mut cache = state.epub_cache.lock().await;
         if let Some(hit) = cache.get(&id) {
-            hit.clone()
+            hit
         } else {
             drop(cache);
             let fetched = storage
@@ -1204,9 +1204,9 @@ pub async fn spine_info(
     drop(db);
 
     let zip_bytes = {
-        let cache = state.epub_cache.lock().await;
+        let mut cache = state.epub_cache.lock().await;
         if let Some(hit) = cache.get(&id) {
-            hit.clone()
+            hit
         } else {
             drop(cache);
             let fetched = storage
