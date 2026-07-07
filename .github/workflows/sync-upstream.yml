@@ -43,7 +43,7 @@ jobs:
   deploy:
     name: Deploy to DigitalOcean
     needs: sync
-    if: needs.sync.outputs.updated == 'true'
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
