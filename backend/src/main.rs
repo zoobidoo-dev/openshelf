@@ -2,6 +2,7 @@ mod auth;
 mod books;
 mod cache;
 mod db;
+mod diagnostics;
 mod storage;
 mod users;
 
@@ -106,6 +107,7 @@ async fn main() {
             get(books::export_annotations),
         )
         .route("/books/{id}/spine", get(books::spine_info))
+        .route("/debug/book/{id}", get(diagnostics::book_diagnostic))
         .route(
             "/books/{id}/settings",
             get(books::get_settings).put(books::save_settings),
