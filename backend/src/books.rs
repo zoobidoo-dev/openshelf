@@ -1,6 +1,6 @@
 use axum::{
     extract::{Multipart, Path, Query, State},
-    http::{header, StatusCode},
+    http::{header, HeaderMap, StatusCode},
     response::Response,
     Json,
 };
@@ -612,6 +612,7 @@ pub async fn touch_book(
 pub async fn serve_book_file(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Response, StatusCode> {
     let storage = storage(&state).map_err(|e| e.0)?;
 
@@ -630,12 +631,56 @@ pub async fn serve_book_file(
         .await
         .map_err(|_| StatusCode::NOT_FOUND)?;
 
+    let total = bytes.len();
     let mime = "application/epub+zip";
+
+    if let Some(range_val) = headers.get(header::RANGE) {
+        if let Some((start, end)) = range_val
+            .to_str()
+            .ok()
+            .and_then(|s| parse_byte_range(s, total))
+        {
+            let chunk = bytes[start..=end].to_vec();
+            let chunk_len = chunk.len();
+            return Ok(Response::builder()
+                .status(StatusCode::PARTIAL_CONTENT)
+                .header(header::CONTENT_TYPE, mime)
+                .header(header::CONTENT_RANGE, format!("bytes {}-{}/{}", start, end, total))
+                .header(header::ACCEPT_RANGES, "bytes")
+                .header(header::CONTENT_LENGTH, chunk_len.to_string())
+                .body(chunk.into())
+                .unwrap());
+        }
+    }
 
     Ok(Response::builder()
         .header(header::CONTENT_TYPE, mime)
+        .header(header::ACCEPT_RANGES, "bytes")
+        .header(header::CONTENT_LENGTH, total.to_string())
         .body(bytes.into())
         .unwrap())
+}
+
+fn parse_byte_range(range: &str, total: usize) -> Option<(usize, usize)> {
+    let range = range.strip_prefix("bytes=")?;
+    let mut parts = range.split('-');
+    let start_str = parts.next()?.trim();
+    let end_str = parts.next()?.trim();
+    if start_str.is_empty() {
+        let n: usize = end_str.parse().ok()?;
+        let start = total.saturating_sub(n);
+        return Some((start, total - 1));
+    }
+    let start: usize = start_str.parse().ok()?;
+    let end = if end_str.is_empty() {
+        total - 1
+    } else {
+        end_str.parse::<usize>().ok()?.min(total - 1)
+    };
+    if start > end || start >= total {
+        return None;
+    }
+    Some((start, end))
 }
 
 pub async fn serve_book_cover(

@@ -109,6 +109,9 @@
         return null;
       });
 
+    const CHUNK_SIZE = 4 * 1024 * 1024;
+    const CHUNK_THRESHOLD = 8 * 1024 * 1024;
+
     const blobPromise = (async () => {
       const cached = __blobCache.get(bookId);
       if (cached) {
@@ -116,9 +119,31 @@
         return cached;
       }
       try {
-        const res = await fetch(fileUrl(), { credentials: "include" });
-        if (!res.ok) return null;
-        const blob = await res.blob();
+        const head = await fetch(fileUrl(), { method: "HEAD", credentials: "include" });
+        if (!head.ok) return null;
+        const contentLength = parseInt(head.headers.get("content-length") ?? "0", 10);
+
+        let blob: Blob;
+        if (contentLength > CHUNK_THRESHOLD) {
+          const chunks: ArrayBuffer[] = [];
+          let start = 0;
+          while (start < contentLength) {
+            const end = Math.min(start + CHUNK_SIZE - 1, contentLength - 1);
+            const res = await fetch(fileUrl(), {
+              credentials: "include",
+              headers: { Range: `bytes=${start}-${end}` },
+            });
+            if (!res.ok && res.status !== 206) return null;
+            chunks.push(await res.arrayBuffer());
+            start = end + 1;
+          }
+          blob = new Blob(chunks, { type: "application/epub+zip" });
+        } else {
+          const res = await fetch(fileUrl(), { credentials: "include" });
+          if (!res.ok) return null;
+          blob = await res.blob();
+        }
+
         const url = URL.createObjectURL(blob);
         __blobCache.set(bookId, url);
         fileBlobUrl = url;
