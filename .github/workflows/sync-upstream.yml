@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      updated: ${{ steps.sync.outputs.updated }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,8 +26,39 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Add upstream and sync
+        id: sync
         run: |
           git remote add upstream https://github.com/MrSheerluck/openshelf.git
           git fetch upstream
+          BEFORE=$(git rev-parse HEAD)
           git merge upstream/main --no-edit || echo "Nothing to merge or conflicts detected"
           git push origin main
+          AFTER=$(git rev-parse HEAD)
+          if [ "$BEFORE" != "$AFTER" ]; then
+            echo "updated=true" >> $GITHUB_OUTPUT
+          else
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+  deploy:
+    name: Deploy to DigitalOcean
+    needs: sync
+    if: needs.sync.outputs.updated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: root
+          key: ${{ secrets.DO_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -e
+            cd /opt/openshelf-build
+            git pull origin main
+            docker build -t openshelf:local .
+            cd /opt/openshelf
+            docker compose down
+            docker compose up -d
+            echo "Deploy complete: $(cd /opt/openshelf-build && git rev-parse --short HEAD)"
